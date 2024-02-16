@@ -14,7 +14,7 @@ from utils.calculate_attempts import (
     mini_time_app,
     wordle_attempts,
 )
-from utils.helpers import add_game, clear_scoreboard, show_scoreboard
+from utils.helpers import add_game, add_manual_score, clear_scoreboard, show_scoreboard
 from utils.patterns import (
     connections_pattern,
     mini_pattern,
@@ -55,5 +55,6 @@ def handle_messages(update: Update, context):
 
 
 message_handler = MessageHandler(Filters.text & ~Filters.command, handle_messages)
-clear_handler = CommandHandler("clear", clear_scoreboard)
 scoreboard_handler = CommandHandler("scoreboard", show_scoreboard)
+clear_handler = CommandHandler("clear", clear_scoreboard, pass_args=True)
+add_handler = CommandHandler("add", add_manual_score, pass_args=True)

@@ -13,7 +13,12 @@ import pytz
 from telegram import Update
 
 from database.db_setup import cursor
-from database.queries import add_game_to_database, clear_table, user_has_submitted
+from database.queries import (
+    add_game_to_database,
+    clear_table,
+    user_has_submitted,
+    manual_add_to_database,
+)
 
 
 def calculate_rankings():
@@ -121,7 +126,7 @@ def add_game(user, game, score, context, update):
     context.bot.send_message(chat_id=update.message.chat_id, text=scoreboard_msg)
 
 
-def show_scoreboard(update: Update):
+def show_scoreboard(update: Update, context):
     """
     Report daily/monthly totals to a Telegram message.
 
@@ -150,17 +155,20 @@ def show_scoreboard(update: Update):
         scoreboard_msg += game_scoreboard_msg
     # Append daily totals
     if len(today_total_df) == 0:
-        scoreboard_msg += "No points scored for today! 😔"
+        scoreboard_msg += "No points scored for today! 😔\n\n"
     else:
         scoreboard_msg += f"👑 Daily totals 👑 \n{today_total_df.to_string(index=False, header=False)}\n\n"
     # Append monthly totals
-    scoreboard_msg += f"📅 Monthly totals 📅 {monthly_total_df.to_string(index=False, header=False)}\n\n"
+    if len(monthly_total_df) == 0:
+        scoreboard_msg += "No points scored for this month! 😢"
+    else:
+        scoreboard_msg += f"📅 Monthly totals 📅 \n{monthly_total_df.to_string(index=False, header=False)}"
 
     # Send the scoreboard message to Telegram
     update.message.reply_text(scoreboard_msg)
 
 
-def clear_scoreboard(update, user=None):
+def clear_scoreboard(update: Update, context):
     """
     Clear the database table for today's date and a specific user (if provided), and send a confirmation message.
 
@@ -171,8 +179,13 @@ def clear_scoreboard(update, user=None):
     Returns:
     - None
     """
+    # Parse arguments
     today = datetime.now(pytz.utc).date()
+    user = context.args[0] if context.args else None
+
+    # Call the function to clear data to the database
     clear_table(today, user)
+
     # Send a confirmation message
     if user:
         update.message.reply_text(
@@ -180,3 +193,30 @@ def clear_scoreboard(update, user=None):
         )
     else:
         update.message.reply_text(f"Database table cleared for {today} 🗑️!")
+
+
+def add_manual_score(update, context):
+    """
+    Add a user's game score to the database for today.
+
+    Args:
+    - update (telegram.Update): The update object.
+    - context (telegram.ext.CallbackContext): The context object containing command arguments.
+
+    Returns:
+    - None
+    """
+    print("add called; args:" + str(context.args))
+
+    # Parse arguments
+    if len(context.args) != 3:
+        update.message.reply_text("Usage: /add <user> <game> <score>")
+        return
+    user, game, score = context.args
+    today = datetime.now(pytz.utc).date()
+
+    # Call the function to add data to the database
+    manual_add_to_database(today, user, game, score)
+
+    # Send a confirmation message
+    update.message.reply_text(f"Score added for {user} in {game}: {score}")

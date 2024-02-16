@@ -9,7 +9,7 @@ import os
 from dotenv import load_dotenv
 from telegram.ext import Updater
 
-from bot.handlers import clear_handler, message_handler, scoreboard_handler
+from bot.handlers import add_handler, clear_handler, message_handler, scoreboard_handler
 
 # Load environment variables from .env file
 load_dotenv()
@@ -28,8 +28,9 @@ def run_bot():
 
     # Register message/command handlers
     dispatcher.add_handler(message_handler)
-    dispatcher.add_handler(clear_handler)
     dispatcher.add_handler(scoreboard_handler)
+    dispatcher.add_handler(clear_handler)
+    dispatcher.add_handler(add_handler)
 
     # Start the bot
     updater.start_polling(clean=True)

@@ -11,6 +11,23 @@ from datetime import datetime
 from database.db_setup import cursor, db_connection
 
 
+def user_has_submitted(user, game, today):
+    """
+    Check if a user has submitted data for a specific game on the current date.
+
+    Args:
+        user (str): The user's name.
+        game (str): The name of the game.
+        today (str): The current date.
+
+    Returns:
+        bool: True if the user has submitted data, False otherwise.
+    """
+    query = f"SELECT * FROM nyt_rankbot WHERE user = '{user}' AND game = '{game}' AND date = '{today}'"
+    cursor.execute(query)
+    return cursor.fetchone() is not None
+
+
 def add_game_to_database(new_data):
     """
     Add game data to the database.
@@ -28,7 +45,7 @@ def add_game_to_database(new_data):
     db_connection.commit()
 
 
-def clear_table(today, user=None):
+def clear_table(today, user):
     """
     Clear the database table for a specific date and user.
 
@@ -50,18 +67,22 @@ def clear_table(today, user=None):
     db_connection.commit()
 
 
-def user_has_submitted(user, game, today):
+def manual_add_to_database(today, user, game, score):
     """
-    Check if a user has submitted data for a specific game on the current date.
+    Add a user's game score to the database for a specific date.
 
     Args:
-        user (str): The user's name.
-        game (str): The name of the game.
-        today (str): The current date.
+    - today (str): The date for which the score should be added.
+    - user (str): The user for whom the score is being added.
+    - game (str): The game for which the score is being added.
+    - score (str): The score to be added.
 
     Returns:
-        bool: True if the user has submitted data, False otherwise.
+    - None
     """
-    query = f"SELECT * FROM nyt_rankbot WHERE user = '{user}' AND game = '{game}' AND date = '{today}'"
-    cursor.execute(query)
-    return cursor.fetchone() is not None
+    # Construct the SQL query to insert data into the database
+    insert_query = f"INSERT INTO nyt_rankbot (date, user, game, score) VALUES ('{today}', '{user}', '{game}', '{score}')"
+
+    # Execute the query and commit changes
+    cursor.execute(insert_query)
+    db_connection.commit()
