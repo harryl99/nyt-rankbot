@@ -18,6 +18,16 @@ def connections_attempts(message):
         for line in connections_lines
         if any(square in line for square in connection_colours)
     ]
+
+    # Check if the final object is not all the same color square
+    final_object = [
+        square
+        for square in connections_lines[-1]
+        if square in connection_colours  # ignore any text
+    ]
+    if not all(final_object[0] == square for square in final_object):
+        return 8
+
     attempts = len(connections_lines)
     return attempts
 
