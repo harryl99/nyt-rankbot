@@ -56,7 +56,7 @@ def mini_time_app(message):
     Returns:
     - str: The extracted time.
     """
-    minutes_seconds = mini_pattern.search(message).group(1)
+    minutes_seconds = mini_pattern_app.search(message).group(1)
     minutes, seconds = map(int, minutes_seconds.split(":"))
     time = (minutes * 60) + seconds
     return time
