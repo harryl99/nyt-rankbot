@@ -28,17 +28,24 @@ def add_game_to_database(new_data):
     db_connection.commit()
 
 
-def clear_table(today):
+def clear_table(today, user=None):
     """
-    Clear the database table for a specific date.
+    Clear the database table for a specific date and user.
 
     Args:
         today (str): The date for which the table should be cleared.
+        user (str, optional): The user whose data should be cleared. Default is None, which clears all users.
 
     Returns:
         None
     """
-    clear_query = f"DELETE FROM nyt_rankbot WHERE date = '{today}'"
+    if user:
+        clear_query = (
+            f"DELETE FROM nyt_rankbot WHERE date = '{today}' AND user = '{user}'"
+        )
+    else:
+        clear_query = f"DELETE FROM nyt_rankbot WHERE date = '{today}'"
+
     cursor.execute(clear_query)
     db_connection.commit()
 
