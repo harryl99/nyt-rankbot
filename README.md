@@ -15,7 +15,7 @@ Calculates daily rankings in group chats for NYT games.
   * With Nano, create an `.env` file in the root, including: `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_NAME`, and `TELEGRAM_BOT_TOKEN`.
   * `python3 -m venv nyt-rankbot`, `source nyt-rankbot/bin/activate`, `pip install -r requirements.txt`.
   * Run application in the background with `nohup python3 main.py &`.
-* Try the bot out with some commands, below.
+* Add the bot to a group-chat with friends and try it out with some commands, below.
 
 ## Commands
 * `/clear`: clears the Database entries for today.
