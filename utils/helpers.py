@@ -9,6 +9,7 @@ The functionality includes adding new game scores, displaying today's rankings, 
 from datetime import datetime
 
 import pandas as pd
+import pytz
 from telegram import Update
 from telegram.ext import CallbackContext
 
@@ -62,7 +63,7 @@ def add_game(user, game, score, context, update):
     """
 
     # Check if the user has already submitted a game for today
-    today = datetime.today().date()
+    today = datetime.now(pytz.utc).date()
     if user_has_submitted(user, game, today):
         update.message.reply_text(
             f"{user} has already submitted a score for '{game}' today 🤨!"
@@ -70,7 +71,6 @@ def add_game(user, game, score, context, update):
         return None
 
     # Parse the new data
-    today = datetime.today().date()
     new_data = [user, game, score, today]
 
     # Add the new data to the database
@@ -135,7 +135,7 @@ def clear_scoreboard(update: Update, context: CallbackContext):
     Returns:
     - None
     """
-    today = datetime.today().date()
+    today = datetime.now(pytz.utc).date()
     clear_table(today)
     # Send a confirmation message
     update.message.reply_text(f"Database table cleared for {today} 🗑️!")
