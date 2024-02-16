@@ -1,4 +1,4 @@
-from utils.patterns import mini_pattern, wordle_pattern
+from utils.patterns import mini_pattern, mini_pattern_app, wordle_pattern
 
 
 def connections_attempts(message):
@@ -43,6 +43,22 @@ def mini_time(message):
     - str: The extracted time.
     """
     time = mini_pattern.search(message).group(1)
+    return time
+
+
+def mini_time_app(message):
+    """
+    Extract the amount of time to complete the Mini, in the app.
+
+    Parameters:
+    - message (str): The input message containing Mini game information.
+
+    Returns:
+    - str: The extracted time.
+    """
+    minutes_seconds = mini_pattern.search(message).group(1)
+    minutes, seconds = map(int, minutes_seconds.split(":"))
+    time = (minutes * 60) + seconds
     return time
 
 

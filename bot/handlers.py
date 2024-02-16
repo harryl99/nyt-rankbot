@@ -8,9 +8,19 @@ It includes handlers for specific commands, message patterns, and scoreboard dis
 from telegram import Update
 from telegram.ext import CommandHandler, Filters, MessageHandler
 
-from utils.calculate_attempts import connections_attempts, mini_time, wordle_attempts
+from utils.calculate_attempts import (
+    connections_attempts,
+    mini_time,
+    mini_time_app,
+    wordle_attempts,
+)
 from utils.helpers import add_game, clear_scoreboard, show_scoreboard
-from utils.patterns import connections_pattern, mini_pattern, wordle_pattern
+from utils.patterns import (
+    connections_pattern,
+    mini_pattern,
+    mini_pattern_app,
+    wordle_pattern,
+)
 
 
 def handle_messages(update: Update, context):
@@ -35,6 +45,9 @@ def handle_messages(update: Update, context):
         add_game(user, "Connections", attempts, context, update)
     elif mini_pattern.search(message):
         time = mini_time(message)
+        add_game(user, "Mini", time, context, update)
+    elif mini_pattern_app.search(message):
+        time = mini_time_app(message)
         add_game(user, "Mini", time, context, update)
     elif wordle_pattern.search(message):
         attempts = wordle_attempts(message)
