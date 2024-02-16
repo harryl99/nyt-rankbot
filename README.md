@@ -1,7 +1,7 @@
 # NYT rankbot 🤖
 Calculates daily rankings in group chats for NYT games.
 
-![image](https://github.com/harryl99/nyt-rankbot/assets/79798424/0ee465bd-d6ca-482b-b146-062421cec146)
+![example_screenshot](https://github.com/harryl99/nyt-rankbot/assets/79798424/cea1ded0-eb9a-46fc-ae67-bf8f5724b2a2)
 
 ## Infrastructure
 * Get a Telegram bot from [BotFather](https://t.me/BotFather). Give it an appropriate name/description/picture and note down the token.
