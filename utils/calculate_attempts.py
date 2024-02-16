@@ -47,4 +47,5 @@ def wordle_attempts(message):
     - str: The extracted number of attempts.
     """
     attempts = wordle_pattern.search(message).group(1)
+    attempts = attempts.replace("X", "7")
     return attempts
