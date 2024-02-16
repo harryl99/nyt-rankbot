@@ -3,7 +3,7 @@ Helper Functions Module.
 
 This module contains functions for tracking and displaying game scores in a Telegram bot. 
 It utilizes a database to store user-submitted scores, calculates rankings, and generates scoreboards. 
-The functionality includes adding new game scores, displaying today's rankings, and clearing the database for a new day.
+The functionality includes adding new game scores, displaying today's rankings, and clearing the database for a given day.
 """
 
 from datetime import datetime
@@ -32,22 +32,50 @@ def calculate_rankings():
     # Create DataFrame from the query result
     score_df = pd.DataFrame(data, columns=["id", "user", "game", "score", "date"])
 
-    # Calculate rankings and assign points
-    today_df = score_df[score_df["date"] == pd.to_datetime("today").date()]
-    sorted_df = today_df.sort_values(by=["game", "score"])
-    sorted_df["points"] = sorted_df.groupby("game")["score"].rank(method="min")
+    # Calculate rankings per date/game and assign points
+    sorted_df = score_df.sort_values(by=["date", "game", "score"])
+    sorted_df["points"] = sorted_df.groupby(["date", "game"])["score"].rank(
+        method="min"
+    )
     point_mapping = {1: 3, 2: 2, 3: 1}
     sorted_df["points"] = sorted_df["points"].map(point_mapping).fillna(0)
 
-    total_points = sorted_df.groupby("user")["points"].sum().reset_index()
-    total_points = total_points.sort_values(by="points", ascending=False)
+    return sorted_df
 
-    return sorted_df, total_points
+
+def calculate_period_total(sorted_df: pd.DataFrame, today: datetime.date, period: str):
+    """
+    Calculate total points for each user based on the given sorted DataFrame for a specified period.
+
+    Parameters:
+    - sorted_df (pandas.DataFrame): A DataFrame containing sorted data with a "date" column and a "points" column.
+    - today (datetime.date): The date for which to calculate the total points.
+    - period (str): A string indicating the period for which to calculate totals ('today' or 'month').
+
+    Returns:
+    - period_df (pandas.DataFrame): A subset of the input DataFrame for the specified period.
+    - period_total_df (pandas.DataFrame): A DataFrame with the total points for each user in the specified period, sorted in descending order.
+    """
+    if period == "today":
+        period_df = sorted_df[sorted_df["date"] == today]
+    elif period == "month":
+        start_of_month = datetime(today.year, today.month, 1)
+        end_of_month = datetime(today.year, today.month + 1, 1) - pd.Timedelta(days=1)
+        period_df = sorted_df[
+            (sorted_df["date"] >= start_of_month.date())
+            & (sorted_df["date"] <= end_of_month.date())
+        ]
+    else:
+        raise ValueError("Invalid period. Use 'today' or 'month'.")
+
+    period_total_df = period_df.groupby("user")["points"].sum().reset_index()
+    period_total_df = period_total_df.sort_values(by="points", ascending=False)
+    return period_df, period_total_df
 
 
 def add_game(user, game, score, context, update):
     """
-    Add a new game score to the database, calculate new rankings, and send the combined message to Telegram.
+    Add a new game score to the database, and reports updated daily totals to Telegram.
 
     Args:
     - user (str): The username.
@@ -73,45 +101,61 @@ def add_game(user, game, score, context, update):
     add_game_to_database(new_data)
 
     # Calculate new rankings
-    sorted_df, total_points = calculate_rankings()
-    new_rankings = sorted_df.loc[sorted_df["game"] == game][["user", "score"]]
-    # Prepare the combined message to send
-    combined_msg = (
-        f"{user}'s score of '{score}' detected for '{game}'!\n\n"
-        f"🔢 {game} scoreboard 🔢\n{new_rankings.to_string(index=False, header=False)}\n\n"
-        f"👑 Total points 👑\n{total_points.to_string(index=False, header=False)}"
+    sorted_df = calculate_rankings()
+    # Today total
+    today_df, today_total_df = calculate_period_total(sorted_df, today, period="today")
+    # Today score (for the specific game being added)
+    today_score_game = today_df.loc[today_df["game"] == game][["user", "score"]]
+
+    # Prepare the message for today's scoreboard
+    scoreboard_msg = ""
+    # Clarify whose points are being added
+    scoreboard_msg += f"{user}'s score of '{score}' detected for '{game}'!\n\n"
+    # Add daily totals
+    scoreboard_msg += f"🔢 {game} points 🔢\n{today_score_game.to_string(index=False, header=False)}\n\n"
+    scoreboard_msg += (
+        f"👑 Daily totals 👑\n{today_total_df.to_string(index=False, header=False)}"
     )
+
     # Send the combined message to Telegram
-    context.bot.send_message(chat_id=update.message.chat_id, text=combined_msg)
+    context.bot.send_message(chat_id=update.message.chat_id, text=scoreboard_msg)
 
 
 def show_scoreboard(update: Update):
     """
-    Calculate today's rankings, prepare the scoreboard message, and send it to Telegram.
+    Report daily/monthly totals to a Telegram message.
 
     Args:
     - update (telegram.Update): The update object.
-    - context (telegram.ext.CallbackContext): The context object.
 
     Returns:
     - None
     """
-
-    # Calculate today's rankings
-    sorted_df, total_points = calculate_rankings()
+    today = datetime.now(pytz.utc).date()
+    # Calculate new rankings
+    sorted_df = calculate_rankings()
+    # Monthly total
+    monthly_df, monthly_total_df = calculate_period_total(
+        sorted_df, today, period="month"
+    )
+    # Today total
+    today_df, today_total_df = calculate_period_total(sorted_df, today, period="today")
 
     # Prepare the message for today's scoreboard
     scoreboard_msg = ""
     # Iterate through unique games and append to the message
-    for game in sorted_df["game"].unique():
-        game_df = sorted_df[sorted_df["game"] == game]
-        game_scoreboard_msg = f"🔢 {game} scoreboard 🔢\n{game_df[['user', 'score']].to_string(index=False, header=False)}\n\n"
+    for game in sorted_df[sorted_df["date"] == today]["game"].unique():
+        game_today_df = sorted_df[(sorted_df["game"] == game)]
+        game_scoreboard_msg = f"🔢 {game} points 🔢\n{game_today_df[['user', 'score']].to_string(index=False, header=False)}\n\n"
         scoreboard_msg += game_scoreboard_msg
-    # Append total points message
-    if len(total_points) == 0:
-        scoreboard_msg = "No points scored for today! 😔"
+    # Append daily totals
+    if len(today_total_df) == 0:
+        scoreboard_msg += "No points scored for today! 😔"
     else:
-        scoreboard_msg += f"👑 Total points today 👑 \n{total_points.to_string(index=False, header=False)}"
+        scoreboard_msg += f"👑 Daily totals 👑 \n{today_total_df.to_string(index=False, header=False)}\n\n"
+    # Append monthly totals
+    scoreboard_msg += f"📅 Monthly totals 📅 {monthly_total_df.to_string(index=False, header=False)}\n\n"
+
     # Send the scoreboard message to Telegram
     update.message.reply_text(scoreboard_msg)
 
