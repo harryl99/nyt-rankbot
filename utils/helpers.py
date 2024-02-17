@@ -16,8 +16,9 @@ from database.db_setup import cursor
 from database.queries import (
     add_game_to_database,
     clear_table,
-    user_has_submitted,
     manual_add_to_database,
+    query_all_data,
+    user_has_submitted,
 )
 
 
@@ -29,11 +30,9 @@ def calculate_rankings():
     - sorted_df (pd.DataFrame): DataFrame containing sorted scores for each game.
     - total_points (pd.DataFrame): DataFrame containing total points for each user.
     """
+    # Query all data from the db
+    data = query_all_data(cursor)
 
-    # Query data from the database
-    query = "SELECT * FROM nyt_rankbot"
-    cursor.execute(query)
-    data = cursor.fetchall()
     # Create DataFrame from the query result
     score_df = pd.DataFrame(data, columns=["id", "user", "game", "score", "date"])
 

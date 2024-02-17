@@ -11,6 +11,23 @@ from datetime import datetime
 from database.db_setup import cursor, db_connection
 
 
+def query_all_data(cursor):
+    """
+    Queries all data from the 'nyt_rankbot' table in the database.
+
+    Parameters:
+    - cursor: The database cursor object used to execute the query.
+
+    Returns:
+    - data: A list of tuples containing the fetched data from the database.
+    """
+    # Query data from the database
+    query = "SELECT * FROM nyt_rankbot"
+    cursor.execute(query)
+    data = cursor.fetchall()
+    return data
+
+
 def user_has_submitted(user, game, today):
     """
     Check if a user has submitted data for a specific game on the current date.
