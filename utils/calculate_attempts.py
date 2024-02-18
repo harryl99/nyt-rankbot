@@ -48,7 +48,7 @@ def mini_time(message):
 
 def mini_time_app(message):
     """
-    Extract the amount of time to complete the Mini, in the app.
+    Extract the amount of time to complete the Mini, when sent using the app.
 
     Parameters:
     - message (str): The input message containing Mini game information.

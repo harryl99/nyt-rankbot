@@ -1,39 +1,47 @@
 """
 Script to initialize the database connection and create the required table.
 
-This script uses the pymysql library to establish a connection to the database
-using the credentials provided in the environment variables loaded from the .env file.
-If non-existant, it creates a table named 'nyt_rankbot' with columns 'id', 'user', 'game', 'score', and 'date'.
+This script uses SQLalchemy to establish a connection to a local SQLite database.
+If the database file does not exist, it creates a table named 'nyt_rankbot' with columns 'id', 'user', 'game', 'score', and 'date'.
 """
 
 import os
 
-import pymysql
-from dotenv import load_dotenv
+from sqlalchemy import Column, Date, Integer, String, create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 
-# Load environment variables from .env file
-load_dotenv()
+# Database configuration
+db_file_path = f"{os.path.join(os.getcwd(), 'database/nyt_rankbot.db')}"
+db_url = f"sqlite:///{db_file_path}"
+engine = create_engine(db_url)
 
-# Initialize the database connection
-db_config = {
-    "user": os.getenv("DB_USER"),
-    "password": os.getenv("DB_PASSWORD"),
-    "host": os.getenv("DB_HOST"),
-    "database": os.getenv("DB_NAME"),
-}
+# Declarative base
+Base = declarative_base()
 
-db_connection = pymysql.connect(**db_config)
-cursor = db_connection.cursor()
 
-# SQL statement to create the table
-create_table_query = """
-CREATE TABLE IF NOT EXISTS nyt_rankbot (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user VARCHAR(255) NOT NULL,
-    game VARCHAR(255) NOT NULL,
-    score INT NOT NULL,
-    date DATE NOT NULL
-);
-"""
-cursor.execute(create_table_query)
-db_connection.commit()
+class NytRankbot(Base):
+    """
+    SQLAlchemy model representing the 'nyt_rankbot' table.
+
+    Attributes:
+    - id (int): Primary key, auto-incremented.
+    - user (str): Name of the user, not nullable.
+    - game (str): Name of the game, not nullable.
+    - score (int): Score achieved by the user in the game, not nullable.
+    - date (Date): Date when the score was achieved, not nullable.
+    """
+
+    __tablename__ = "nyt_rankbot"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user = Column(String(255), nullable=False)
+    game = Column(String(255), nullable=False)
+    score = Column(Integer, nullable=False)
+    date = Column(Date, nullable=False)
+
+
+# Create the table
+Base.metadata.create_all(engine)
+
+# Create a session factory
+SessionFactory = sessionmaker(bind=engine)

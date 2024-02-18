@@ -1,4 +1,4 @@
-pymysql
+sqlalchemy
 pandas
 python-dotenv
 python-telegram-bot==13.3

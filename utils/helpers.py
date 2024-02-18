@@ -12,11 +12,9 @@ import pandas as pd
 import pytz
 from telegram import Update
 
-from database.db_setup import cursor
 from database.queries import (
     add_game_to_database,
     clear_table,
-    manual_add_to_database,
     query_all_data,
     user_has_submitted,
 )
@@ -31,7 +29,7 @@ def calculate_rankings():
     - total_points (pd.DataFrame): DataFrame containing total points for each user.
     """
     # Query all data from the db
-    data = query_all_data(cursor)
+    data = query_all_data()
 
     # Create DataFrame from the query result
     score_df = pd.DataFrame(data, columns=["id", "user", "game", "score", "date"])
@@ -99,10 +97,8 @@ def add_game(user, game, score, context, update):
         )
         return
 
-    # Parse the new data
-    new_data = [user, game, score, today]
     # Add the new data to the database
-    add_game_to_database(new_data)
+    add_game_to_database(user, game, score, today)
 
     # Calculate new rankings
     sorted_df = calculate_rankings()
@@ -205,8 +201,6 @@ def add_manual_score(update, context):
     Returns:
     - None
     """
-    print("add called; args:" + str(context.args))
-
     # Parse arguments
     if len(context.args) != 3:
         update.message.reply_text("Usage: /add <user> <game> <score>")
@@ -215,7 +209,7 @@ def add_manual_score(update, context):
     today = datetime.now(pytz.utc).date()
 
     # Call the function to add data to the database
-    manual_add_to_database(today, user, game, score)
+    add_game_to_database(user, game, score, today)
 
     # Send a confirmation message
     update.message.reply_text(f"Score added for {user} in {game}: {score}")

@@ -1,105 +1,89 @@
 """
 Database Operations Module
 
-This module provides functions for interacting with the MySQL database, including
+This module provides functions for interacting with the SQLAlchemy database, including
 adding game data, clearing the table for a specific date, and checking if a user has
 already submitted data for a specific game on the current date.
 """
 
-from datetime import datetime
-
-from database.db_setup import cursor, db_connection
+from database.db_setup import NytRankbot, SessionFactory
 
 
-def query_all_data(cursor):
+def query_all_data():
     """
     Queries all data from the 'nyt_rankbot' table in the database.
 
-    Parameters:
-    - cursor: The database cursor object used to execute the query.
-
     Returns:
-    - data: A list of tuples containing the fetched data from the database.
+    - data_tuples: A list of tuples containing the fetched data from the database.
     """
-    # Query data from the database
-    query = "SELECT * FROM nyt_rankbot"
-    cursor.execute(query)
-    data = cursor.fetchall()
-    return data
+    session = SessionFactory()
+    data = session.query(NytRankbot).all()
+    session.close()
+
+    # Extract attributes from instances and create a list of tuples
+    data_tuples = [
+        (item.id, item.user, item.game, item.score, item.date) for item in data
+    ]
+
+    return data_tuples
 
 
 def user_has_submitted(user, game, today):
     """
     Check if a user has submitted data for a specific game on the current date.
 
-    Args:
-        user (str): The user's name.
-        game (str): The name of the game.
-        today (str): The current date.
-
     Returns:
         bool: True if the user has submitted data, False otherwise.
     """
-    query = f"SELECT * FROM nyt_rankbot WHERE user = '{user}' AND game = '{game}' AND date = '{today}'"
-    cursor.execute(query)
-    return cursor.fetchone() is not None
+    session = SessionFactory()
+    submitted = (
+        session.query(NytRankbot).filter_by(user=user, game=game, date=today).first()
+        is not None
+    )
+    session.close()
+    return submitted
 
 
-def add_game_to_database(new_data):
+def add_game_to_database(user, game, score, today):
     """
     Add game data to the database.
 
     Args:
-        new_data (Tuple[str, str, int, datetime]): Tuple containing user, game, score, and date.
+        user (str): The user's name.
+        game (str): The name of the game.
+        score (str): The score for the game.
+        today (datetime.date): The date for which the data is being added.
 
     Returns:
         None
     """
-    insert_query = (
-        "INSERT INTO nyt_rankbot (user, game, score, date) VALUES (%s, %s, %s, %s)"
+    new_data = NytRankbot(
+        user=user,
+        game=game,
+        score=score,
+        date=today,
     )
-    cursor.execute(insert_query, tuple(new_data))
-    db_connection.commit()
+
+    session = SessionFactory()
+    session.add(new_data)
+
+    session.commit()
+    session.close()
 
 
-def clear_table(today, user):
+def clear_table(today, user=None):
     """
     Clear the database table for a specific date and user.
 
-    Args:
-        today (str): The date for which the table should be cleared.
-        user (str, optional): The user whose data should be cleared. Default is None, which clears all users.
-
     Returns:
         None
     """
-    if user:
-        clear_query = (
-            f"DELETE FROM nyt_rankbot WHERE date = '{today}' AND user = '{user}'"
-        )
-    else:
-        clear_query = f"DELETE FROM nyt_rankbot WHERE date = '{today}'"
-
-    cursor.execute(clear_query)
-    db_connection.commit()
-
-
-def manual_add_to_database(today, user, game, score):
-    """
-    Add a user's game score to the database for a specific date.
-
-    Args:
-    - today (str): The date for which the score should be added.
-    - user (str): The user for whom the score is being added.
-    - game (str): The game for which the score is being added.
-    - score (str): The score to be added.
-
-    Returns:
-    - None
-    """
-    # Construct the SQL query to insert data into the database
-    insert_query = f"INSERT INTO nyt_rankbot (date, user, game, score) VALUES ('{today}', '{user}', '{game}', '{score}')"
-
-    # Execute the query and commit changes
-    cursor.execute(insert_query)
-    db_connection.commit()
+    session = SessionFactory()
+    try:
+        if user:
+            session.query(NytRankbot).filter_by(date=today, user=user).delete()
+        else:
+            session.query(NytRankbot).filter_by(date=today).delete()
+        session.commit()
+    finally:
+        session.close()
