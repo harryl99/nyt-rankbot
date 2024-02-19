@@ -3,7 +3,7 @@ Calculates daily rankings in group chats for NYT games.
 
 ![example_screenshot](https://github.com/harryl99/nyt-rankbot/assets/79798424/cea1ded0-eb9a-46fc-ae67-bf8f5724b2a2)
 
-## Infrastructure
+## Installation
 * Get a Telegram bot from [BotFather](https://t.me/BotFather). Give it an appropriate name/description/picture and note down the token.
 * Disable "Group privacy" for the Telegram bot within the BotFather menu, in order for it to receive all messages. 
 * Set up a GCP VM micro instance.
@@ -17,5 +17,6 @@ Calculates daily rankings in group chats for NYT games.
 
 ## Commands
 * The bot scans and automatically parses results shared via the NYT website/app, for the games: *Connections*, *Mini Crossword*, *Wordle*.
-* `/clear`: clears the database table for today's date and a specific user (if provided).
+* `/add <user> <game> <score>`: manually add a user's game score to the database for today.
+* `/clear <user>`: clears the database table for today's date and a specific user (if provided).
 * `/scoreboard`: lists the scores for all users, for both today and this month's running total.
