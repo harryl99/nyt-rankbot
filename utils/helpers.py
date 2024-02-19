@@ -111,10 +111,9 @@ def add_game(user, game, score, context, update):
     scoreboard_msg = ""
     # Clarify whose points are being added
     scoreboard_msg += f"{user}'s score of '{score}' detected for '{game}'!\n\n"
-    # Add daily totals
-    scoreboard_msg += f"🔢 {game} points 🔢\n{today_score_game.to_string(index=False, header=False)}\n\n"
+    # Add daily total
     scoreboard_msg += (
-        f"👑 Daily totals 👑\n{today_total_df.to_string(index=False, header=False)}"
+        f"🔢 {game} points 🔢\n{today_score_game.to_string(index=False, header=False)}"
     )
 
     # Send the combined message to Telegram
