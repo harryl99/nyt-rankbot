@@ -145,7 +145,9 @@ def show_scoreboard(update: Update, context):
     scoreboard_msg = ""
     # Iterate through unique games and append to the message
     for game in sorted_df[sorted_df["date"] == today]["game"].unique():
-        game_today_df = sorted_df[(sorted_df["game"] == game)]
+        game_today_df = sorted_df[
+            (sorted_df["game"] == game) & (sorted_df["date"] == today)
+        ]
         game_scoreboard_msg = f"🔢 {game} points 🔢\n{game_today_df[['user', 'score']].to_string(index=False, header=False)}\n\n"
         scoreboard_msg += game_scoreboard_msg
     # Append daily totals
