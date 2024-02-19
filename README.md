@@ -16,6 +16,6 @@ Calculates daily rankings in group chats for NYT games.
 * Add the bot to a group-chat with friends and try it out with some commands, below.
 
 ## Commands
+* The bot scans and automatically parses results shared via the NYT website/app, for the games: *Connections*, *Mini Crossword*, *Wordle*.
 * `/clear`: clears the database table for today's date and a specific user (if provided).
 * `/scoreboard`: lists the scores for all users, for both today and this month's running total.
-* The bot scans and automatically parses results shared via the NYT website/app, for the games: *Connections*, *Mini Crossword*, *Wordle*.
