@@ -10,7 +10,7 @@ from datetime import datetime
 
 import pandas as pd
 import pytz
-from telegram import Update
+from telegram import Chat, Update, error
 
 from database.queries import (
     add_game_to_database,
@@ -75,9 +75,34 @@ def calculate_period_total(sorted_df: pd.DataFrame, today: datetime.date, period
     return period_df, period_total_df
 
 
-def add_game(user, game, score, context, update):
+def get_participants_count(update: Update, context):
     """
-    Add a new game score to the database, and reports updated daily totals to Telegram.
+    Get the number of participants in the Telegram chat.
+
+    Args:
+    - update (telegram.Update): The update object.
+    - context (telegram.ext.CallbackContext): The context object.
+
+    Returns:
+    - None
+    """
+    chat_id = update.message.chat_id
+    chat = context.bot.get_chat(chat_id)
+
+    # Check if the message comes from a group chat
+    if chat.type not in (Chat.GROUP, Chat.SUPERGROUP):
+        participants_count = 1
+    else:
+        # Get the number of participants (- 1 for the bot)
+        participants_count = chat.get_members_count() - 1
+
+    return participants_count
+
+
+def add_game(user, game, score, context, update: Update):
+    """
+    Add a new game score to the database.
+    Reports updated daily totals to Telegram if all users have submitted.
 
     Args:
     - user (str): The username.
@@ -100,24 +125,46 @@ def add_game(user, game, score, context, update):
     # Add the new data to the database
     add_game_to_database(user, game, score, today)
 
-    # Calculate new rankings
+    # Broadcast an updated scoreboard to the description/a message
+    try:
+        chat_id = update.message.chat_id
+        scoreboard_msg = prepare_scoreboard_msg()
+        context.bot.set_chat_description(chat_id, scoreboard_msg)
+    except error.BadRequest:  # can't set private chat description
+        pass
+    # Broadcast an updated scoreboard to a message if all users submitted
+    if check_all_submitted(context, update, today):
+        update.message.reply_text("All users submitted!")
+        show_scoreboard(update, context)
+
+
+def check_all_submitted(context, update: Update, today):
+    """
+    This function checks if:
+    (a) scores for 3 unique games have been submitted
+    (b) the number of unique users who submitted scores for each game
+    on the specified day is equal to the total number of participants.
+
+    Parameters:
+    - context: The context object for the Telegram bot.
+    - update: The update object representing an incoming message.
+    - today: The specific date for which to check submissions.
+
+    Returns:
+    None
+    """
+    participants_count = get_participants_count(update, context)
     sorted_df = calculate_rankings()
-    # Today total
-    today_df, today_total_df = calculate_period_total(sorted_df, today, period="today")
-    # Today score (for the specific game being added)
-    today_score_game = today_df.loc[today_df["game"] == game][["user", "score"]]
-
-    # Prepare the message for today's scoreboard
-    scoreboard_msg = ""
-    # Clarify whose points are being added
-    scoreboard_msg += f"{user}'s score of '{score}' detected for '{game}'!\n\n"
-    # Add daily total
-    scoreboard_msg += (
-        f"🔢 {game} points 🔢\n{today_score_game.to_string(index=False, header=False)}"
+    sorted_df_today = sorted_df[sorted_df["date"] == today]
+    all_submitted = all(
+        [
+            sorted_df_today["game"].nunique() == 3,
+            (
+                sorted_df_today.groupby("game")["user"].nunique() == participants_count
+            ).all(),
+        ]
     )
-
-    # Send the combined message to Telegram
-    context.bot.send_message(chat_id=update.message.chat_id, text=scoreboard_msg)
+    return all_submitted
 
 
 def show_scoreboard(update: Update, context):
@@ -126,9 +173,22 @@ def show_scoreboard(update: Update, context):
 
     Args:
     - update (telegram.Update): The update object.
+    - context: The context object for the Telegram bot.
 
     Returns:
     - None
+    """
+    scoreboard_msg = prepare_scoreboard_msg()
+    # Send the scoreboard message to Telegram
+    update.message.reply_text(scoreboard_msg)
+
+
+def prepare_scoreboard_msg():
+    """
+    Prepare a message for today's scoreboard, including game-specific scores, daily totals, and monthly totals.
+
+    Returns:
+    str: Scoreboard message for the day.
     """
     today = datetime.now(pytz.utc).date()
     # Calculate new rankings
@@ -160,8 +220,7 @@ def show_scoreboard(update: Update, context):
     else:
         scoreboard_msg += f"📅 Monthly totals 📅 \n{monthly_total_df.to_string(index=False, header=False)}"
 
-    # Send the scoreboard message to Telegram
-    update.message.reply_text(scoreboard_msg)
+    return scoreboard_msg
 
 
 def clear_scoreboard(update: Update, context):
